@@ -1,0 +1,76 @@
+{
+  "builder_name": "json",
+  "citation": "",
+  "config_name": "default",
+  "dataset_name": "json",
+  "dataset_size": 228241136,
+  "description": "",
+  "download_checksums": {
+    "/root/.cache/huggingface/hub/datasets--McAuley-Lab--Amazon-Reviews-2023/snapshots/2b6d039ed471f2ba5fd2acb718bf33b0a7e5598e/raw/review_categories/All_Beauty.jsonl": {
+      "num_bytes": 326611506,
+      "checksum": null
+    }
+  },
+  "download_size": 326611506,
+  "features": {
+    "rating": {
+      "dtype": "float64",
+      "_type": "Value"
+    },
+    "text": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "labels": {
+      "names": [
+        "0",
+        "1",
+        "2"
+      ],
+      "_type": "ClassLabel"
+    },
+    "label5": {
+      "dtype": "int64",
+      "_type": "Value"
+    },
+    "year": {
+      "dtype": "null",
+      "_type": "Value"
+    },
+    "lang": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "input_ids": {
+      "feature": {
+        "dtype": "int32",
+        "_type": "Value"
+      },
+      "_type": "List"
+    },
+    "attention_mask": {
+      "feature": {
+        "dtype": "int8",
+        "_type": "Value"
+      },
+      "_type": "List"
+    }
+  },
+  "homepage": "",
+  "license": "",
+  "size_in_bytes": 554852642,
+  "splits": {
+    "train": {
+      "name": "train",
+      "num_bytes": 228241136,
+      "num_examples": 701528,
+      "dataset_name": "json"
+    }
+  },
+  "version": {
+    "version_str": "0.0.0",
+    "major": 0,
+    "minor": 0,
+    "patch": 0
+  }
+}
