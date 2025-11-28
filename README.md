@@ -1,5 +1,7 @@
 # dl-project
-Deep Learning Project Repo 
+Deep Learning Project Repo
+
+READ ME
 Hi team, Kartek Pallerla (KP) here.!!
 
 Duplicate the .ipynb (Notebook) File named **20251126 22.47 KP DL Project Colab Notebook** to create your own notebook file.
