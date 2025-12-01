@@ -6,7 +6,7 @@ either in memory or saved to disk (loadable via load_from_disk).
 
 Use the notebook to set MODEL_NAME, num_labels, and training_args, then call train_and_evaluate(...)
 """
-#['lang']
+# ['lang']
 import os
 from typing import Dict, Any, Optional
 from datetime import datetime
@@ -24,6 +24,7 @@ from transformers import (
 
 from src.utils import save_trainer_history_to_csv, save_results_csv, trainer_train_with_timing, evaluate_trainer_with_timing, make_run_dir
 
+
 def train_and_evaluate(
     train_tok: Optional[Any] = None,
     val_tok: Optional[Any] = None,
@@ -34,7 +35,8 @@ def train_and_evaluate(
     MODEL_NAME: str = "distilbert-base-uncased",
     num_labels: int = 3,
     training_args_overrides: Optional[Dict[str, Any]] = None,
-    output_root: str = "outputs",
+    # output_root: str = "outputs",
+    output_root=OUTPUT_ROOT,
     run_name_suffix: Optional[str] = None
 ) -> Dict[str, Any]:
     """
@@ -54,11 +56,13 @@ def train_and_evaluate(
         test_tok = load_from_disk(test_tok_path)
 
     if train_tok is None or val_tok is None or test_tok is None:
-        raise ValueError("train_tok, val_tok, test_tok must be provided (either as objects or paths).")
+        raise ValueError(
+            "train_tok, val_tok, test_tok must be provided (either as objects or paths).")
 
     # tokenizer & model
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, use_fast=True)
-    model = AutoModelForSequenceClassification.from_pretrained(MODEL_NAME, num_labels=num_labels)
+    model = AutoModelForSequenceClassification.from_pretrained(
+        MODEL_NAME, num_labels=num_labels)
 
     # prepare training args with sensible defaults; override from user dict
     defaults = {
@@ -97,7 +101,8 @@ def train_and_evaluate(
         preds = np.argmax(logits, axis=-1)
         from sklearn.metrics import accuracy_score, precision_recall_fscore_support
         acc = accuracy_score(labels, preds)
-        prec, rec, f1, _ = precision_recall_fscore_support(labels, preds, average="weighted", zero_division=0)
+        prec, rec, f1, _ = precision_recall_fscore_support(
+            labels, preds, average="weighted", zero_division=0)
         return {"accuracy": acc, "precision": float(prec), "recall": float(rec), "f1": float(f1)}
 
     trainer = Trainer(
@@ -138,7 +143,8 @@ def train_and_evaluate(
         y_true = pred_out.label_ids
         y_pred = pred_out.predictions.argmax(axis=-1)
         import json
-        report = classification_report(y_true, y_pred, digits=4, output_dict=True)
+        report = classification_report(
+            y_true, y_pred, digits=4, output_dict=True)
         cm = confusion_matrix(y_true, y_pred)
         with open(os.path.join(run_outdir, "classification_report.json"), "w", encoding="utf-8") as fh:
             json.dump(report, fh, indent=2)
