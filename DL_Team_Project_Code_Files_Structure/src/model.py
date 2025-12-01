@@ -35,8 +35,8 @@ def train_and_evaluate(
     MODEL_NAME: str = "distilbert-base-uncased",
     num_labels: int = 3,
     training_args_overrides: Optional[Dict[str, Any]] = None,
-    # output_root: str = "outputs",
-    output_root=OUTPUT_ROOT,
+    output_root: str = "outputs",
+    # output_root=OUTPUT_ROOT,
     run_name_suffix: Optional[str] = None
 ) -> Dict[str, Any]:
     """
