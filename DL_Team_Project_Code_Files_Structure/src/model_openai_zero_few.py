@@ -14,6 +14,7 @@ Design decisions:
 - Error handling: in case of error, return an None or Na (as result) and the 
   print the error message to the screen 
 - style: object oriented
+- randomness: request cannot be made deterministic (responses API does not have a seed argument)  
 '''
 
 # libraries
