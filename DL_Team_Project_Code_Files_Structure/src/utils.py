@@ -3,9 +3,15 @@ This collects the preprocessing, dataset splitting, oversample and metrics utili
 your notebook, plus helper functions for output naming and saving. I reused your notebook functions 
 and made small fixes for indentation and consistent names so they are importable.
 '''
-#res_prep
-#["lang"]
+# res_prep
+# ["lang"]
 # src/utils.py
+import matplotlib.pyplot as plt
+import json
+from typing import Optional
+from sklearn.metrics import accuracy_score, precision_recall_fscore_support, confusion_matrix
+from typing import Callable, Dict, Any
+from datasets import ClassLabel
 import os
 import csv
 import time
@@ -24,6 +30,8 @@ import torch.nn as nn
 # ----------------------
 # small reproducibility helper
 # ----------------------
+
+
 def set_seed(seed: int = 42):
     random.seed(seed)
     np.random.seed(seed)
@@ -35,6 +43,8 @@ def set_seed(seed: int = 42):
 # simple textual preprocess mapping for datasets.map(batched=True)
 # keeps consistent output columns: text, rating, label3, label5, year, lang (lang may be None)
 # ----------------------
+
+
 def preprocess_example_batch_combine(examples):
     texts = []
     ratings = []
@@ -119,6 +129,8 @@ def preprocess_example_batch_combine(examples):
 # ----------------------
 # oversample dataset (return HF Dataset)
 # ----------------------
+
+
 def oversample_dataset(dset: Dataset, label_col: str = "label3") -> Dataset:
     df = dset.to_pandas()
     ros = RandomOverSampler(random_state=42)
@@ -129,10 +141,12 @@ def oversample_dataset(dset: Dataset, label_col: str = "label3") -> Dataset:
     df_res = df.iloc[res_idx].reset_index(drop=True)
     return Dataset.from_pandas(df_res)
 
+
 # ----------------------
 # downsample/back to target size stratified by label column
 # ----------------------
-from datasets import ClassLabel
+
+
 def downsample(ds: Dataset, target_size: int, col_stratified: str, seed: int = 42) -> Dataset:
     """
     Casts label column to ClassLabel and returns a stratified downsampled dataset of size target_size.
@@ -140,12 +154,15 @@ def downsample(ds: Dataset, target_size: int, col_stratified: str, seed: int = 4
     num_classes = len(set(ds[col_stratified]))
     label_class = ClassLabel(num_classes=num_classes)
     ds = ds.cast_column(col_stratified, label_class)
-    split = ds.train_test_split(train_size=target_size, stratify_by_column=col_stratified, seed=seed, shuffle=True)
+    split = ds.train_test_split(
+        train_size=target_size, stratify_by_column=col_stratified, seed=seed, shuffle=True)
     return split["train"]
 
 # ----------------------
 # simple truncate by words
 # ----------------------
+
+
 def truncate_by_words(ds: Dataset, col: str = "text", max_words: int = 256) -> Dataset:
     def _truncate(example):
         txt = example.get(col, "") or ""
@@ -157,6 +174,8 @@ def truncate_by_words(ds: Dataset, col: str = "text", max_words: int = 256) -> D
 # ----------------------
 # save raw dataframe csv
 # ----------------------
+
+
 def save_hf_dataset_to_csv(ds: Dataset, out_path: str, columns=None):
     df = ds.to_pandas()
     if columns:
@@ -169,11 +188,14 @@ def save_hf_dataset_to_csv(ds: Dataset, out_path: str, columns=None):
 # ----------------------
 # compute classification metrics (wrapper)
 # ----------------------
+
+
 def compute_classification_metrics_from_arrays(y_true, y_pred):
     y_true = np.asarray(y_true)
     y_pred = np.asarray(y_pred)
     acc = float(accuracy_score(y_true, y_pred))
-    prec, rec, f1, sup = precision_recall_fscore_support(y_true, y_pred, average="weighted", zero_division=0)
+    prec, rec, f1, sup = precision_recall_fscore_support(
+        y_true, y_pred, average="weighted", zero_division=0)
     report = classification_report(y_true, y_pred, digits=4, output_dict=True)
     cm = confusion_matrix(y_true, y_pred)
     return {"accuracy": acc, "precision": float(prec), "recall": float(rec), "f1": float(f1),
@@ -182,6 +204,8 @@ def compute_classification_metrics_from_arrays(y_true, y_pred):
 # ----------------------
 # save run results row to CSV (append)
 # ----------------------
+
+
 def save_results_csv(results: Dict[str, Any], csv_path: str, model_name: str, extra_info: Dict[str, Any] = None):
     row = {
         "timestamp": datetime.now().strftime("%Y%m%d_%H%M%S"),
@@ -200,7 +224,8 @@ def save_results_csv(results: Dict[str, Any], csv_path: str, model_name: str, ex
             row[k] = v
     # store small serialized fields
     row["support_per_class"] = str(results["metrics"].get("support_per_class"))
-    row["f1_per_class"] = str(results["metrics"].get("f1_per_class", results["metrics"].get("f1_per_class")))
+    row["f1_per_class"] = str(results["metrics"].get(
+        "f1_per_class", results["metrics"].get("f1_per_class")))
 
     write_header = not os.path.exists(csv_path)
     os.makedirs(os.path.dirname(csv_path), exist_ok=True)
@@ -214,6 +239,8 @@ def save_results_csv(results: Dict[str, Any], csv_path: str, model_name: str, ex
 # ----------------------
 # helper: parse trainer.state.log_history into epoch-level CSV
 # ----------------------
+
+
 def save_trainer_history_to_csv(trainer, out_csv_path: str):
     # trainer.state.log_history is a list of dicts with keys like epoch, loss, eval_loss
     logs = getattr(trainer.state, "log_history", None)
@@ -229,7 +256,8 @@ def save_trainer_history_to_csv(trainer, out_csv_path: str):
             continue
         e = float(epoch)
         if e not in by_epoch:
-            by_epoch[e] = {"epoch": e, "train_loss": None, "eval_loss": None, "learning_rate": None}
+            by_epoch[e] = {"epoch": e, "train_loss": None,
+                           "eval_loss": None, "learning_rate": None}
         if "loss" in entry:
             by_epoch[e]["train_loss"] = float(entry["loss"])
         if "eval_loss" in entry:
@@ -248,6 +276,8 @@ def save_trainer_history_to_csv(trainer, out_csv_path: str):
 # ----------------------
 # focal loss for evaluation convenience
 # ----------------------
+
+
 def focal_loss_from_logits(logits, targets, gamma=2.0, weight=None):
     """
     logits: np.array or torch.tensor raw logits (N, C)
@@ -264,12 +294,11 @@ def focal_loss_from_logits(logits, targets, gamma=2.0, weight=None):
     loss = -((1 - pt) ** gamma) * logpt
     return float(loss.mean().item())
 
+
 # ----------------------------
 # Timing helpers
 # ----------------------------
-import time
-from typing import Callable, Dict, Any
-from datetime import datetime
+
 
 def time_function(fn: Callable, *args, **kwargs):
     """
@@ -297,7 +326,7 @@ def trainer_train_with_timing(trainer, *train_args, **train_kwargs):
 # ----------------------------
 # Output directory / naming helper
 # ----------------------------
-import os
+
 
 def make_run_dir(output_root: str, model_name: str, hyperparams: Dict[str, Any]) -> str:
     """
@@ -309,10 +338,12 @@ def make_run_dir(output_root: str, model_name: str, hyperparams: Dict[str, Any])
     """
     t = datetime.now().strftime("%Y%m%d_%H%M%S")
     lr = hyperparams.get("learning_rate", hyperparams.get("lr", "NA"))
-    bs = hyperparams.get("per_device_train_batch_size", hyperparams.get("train_batch_size", "NA"))
+    bs = hyperparams.get("per_device_train_batch_size",
+                         hyperparams.get("train_batch_size", "NA"))
     ep = hyperparams.get("num_train_epochs", hyperparams.get("epochs", "NA"))
     safe_model = str(model_name).replace("/", "_")
-    outdir = os.path.join(output_root, f"{safe_model}_lr{lr}_bs{bs}_ep{ep}_{t}")
+    outdir = os.path.join(
+        output_root, f"{safe_model}_lr{lr}_bs{bs}_ep{ep}_{t}")
     os.makedirs(outdir, exist_ok=True)
     return outdir
 
@@ -320,8 +351,7 @@ def make_run_dir(output_root: str, model_name: str, hyperparams: Dict[str, Any])
 # ----------------------------
 # Evaluate trainer with timing and detailed metrics
 # ----------------------------
-import numpy as np
-from sklearn.metrics import accuracy_score, precision_recall_fscore_support, confusion_matrix
+
 
 def evaluate_trainer_with_timing(trainer, dataset, label_col: str = "labels", batch_size: int = None):
     """
@@ -358,7 +388,8 @@ def evaluate_trainer_with_timing(trainer, dataset, label_col: str = "labels", ba
 
     labels = preds_output.label_ids
     if labels is None:
-        raise ValueError("No label_ids returned by trainer.predict. Ensure dataset contains labels named 'labels' or returned by original dataset.")
+        raise ValueError(
+            "No label_ids returned by trainer.predict. Ensure dataset contains labels named 'labels' or returned by original dataset.")
 
     labels = np.asarray(labels)
     n = len(labels)
@@ -366,8 +397,10 @@ def evaluate_trainer_with_timing(trainer, dataset, label_col: str = "labels", ba
 
     # compute metrics
     acc = float(accuracy_score(labels, y_pred))
-    prec, rec, f1, sup = precision_recall_fscore_support(labels, y_pred, average="weighted", zero_division=0)
-    prec_per, rec_per, f1_per, sup_per = precision_recall_fscore_support(labels, y_pred, average=None, zero_division=0)
+    prec, rec, f1, sup = precision_recall_fscore_support(
+        labels, y_pred, average="weighted", zero_division=0)
+    prec_per, rec_per, f1_per, sup_per = precision_recall_fscore_support(
+        labels, y_pred, average=None, zero_division=0)
     cm = confusion_matrix(labels, y_pred)
 
     metrics = {
@@ -401,11 +434,6 @@ def evaluate_trainer_with_timing(trainer, dataset, label_col: str = "labels", ba
 Small plotting helpers for loss vs epoch.
 """
 
-from typing import Optional
-import os
-import json
-import pandas as pd
-import matplotlib.pyplot as plt
 
 def parse_trainer_log_history(log_history):
     """
@@ -430,8 +458,8 @@ def parse_trainer_log_history(log_history):
     return pd.DataFrame(rows)
 
 
-def plot_loss_vs_epochs(trainer=None, hist_csv: Optional[str]=None, run_outdir: Optional[str]=None,
-                        save_png: Optional[str]=None, save_csv: Optional[str]=None, show_plot: bool=True):
+def plot_loss_vs_epochs(trainer=None, hist_csv: Optional[str] = None, run_outdir: Optional[str] = None,
+                        save_png: Optional[str] = None, save_csv: Optional[str] = None, show_plot: bool = True):
     """
     Plot training & validation loss per epoch.
     - trainer: HF Trainer object (will use trainer.state.log_history if hist_csv missing)
@@ -458,7 +486,8 @@ def plot_loss_vs_epochs(trainer=None, hist_csv: Optional[str]=None, run_outdir: 
 
     # 2) fallback: parse trainer.state.log_history
     if df is None and trainer is not None:
-        log_history = getattr(getattr(trainer, "state", None), "log_history", None)
+        log_history = getattr(
+            getattr(trainer, "state", None), "log_history", None)
         if log_history:
             df = parse_trainer_log_history(log_history)
 
@@ -485,7 +514,8 @@ def plot_loss_vs_epochs(trainer=None, hist_csv: Optional[str]=None, run_outdir: 
                             with open(cand, "r", encoding="utf-8") as fh:
                                 obj = json.load(fh)
                             if isinstance(obj, dict) and "log_history" in obj:
-                                df = parse_trainer_log_history(obj["log_history"])
+                                df = parse_trainer_log_history(
+                                    obj["log_history"])
                                 break
                         except Exception:
                             continue
@@ -519,7 +549,7 @@ def plot_loss_vs_epochs(trainer=None, hist_csv: Optional[str]=None, run_outdir: 
     train_loss = df["train_loss"].astype(float).values
     eval_loss = df["eval_loss"].astype(float).values
 
-    plt.figure(figsize=(8,5))
+    plt.figure(figsize=(8, 5))
     # check how many non-null train points
     valid_train_idx = ~pd.isna(train_loss)
     valid_eval_idx = ~pd.isna(eval_loss)
@@ -530,15 +560,19 @@ def plot_loss_vs_epochs(trainer=None, hist_csv: Optional[str]=None, run_outdir: 
     if n_train_pts > 0:
         # if >=2 points, plot with a line; else plot single point
         if n_train_pts >= 2:
-            plt.plot(epochs[valid_train_idx], train_loss[valid_train_idx], marker='o', label="train_loss")
+            plt.plot(epochs[valid_train_idx], train_loss[valid_train_idx],
+                     marker='o', label="train_loss")
         else:
-            plt.plot(epochs[valid_train_idx], train_loss[valid_train_idx], marker='o', linestyle='None', label="train_loss (single point)")
+            plt.plot(epochs[valid_train_idx], train_loss[valid_train_idx],
+                     marker='o', linestyle='None', label="train_loss (single point)")
     # Plot eval loss
     if n_eval_pts > 0:
         if n_eval_pts >= 2:
-            plt.plot(epochs[valid_eval_idx], eval_loss[valid_eval_idx], marker='o', label="eval_loss")
+            plt.plot(epochs[valid_eval_idx], eval_loss[valid_eval_idx],
+                     marker='o', label="eval_loss")
         else:
-            plt.plot(epochs[valid_eval_idx], eval_loss[valid_eval_idx], marker='o', linestyle='None', label="eval_loss (single point)")
+            plt.plot(epochs[valid_eval_idx], eval_loss[valid_eval_idx],
+                     marker='o', linestyle='None', label="eval_loss (single point)")
 
     plt.xlabel("epoch")
     plt.ylabel("loss")
